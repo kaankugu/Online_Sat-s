@@ -40,3 +40,5 @@ class Snippet(models.Model):
 
     class Meta:
         ordering = ['created']
+
+    

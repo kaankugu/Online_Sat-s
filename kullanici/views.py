@@ -2,58 +2,21 @@ from rest_framework.views import APIView
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser
-from kullanici.serializers import SnippetSerializer
-
+from django.contrib.auth.forms import UserCreationForm
+from django.shortcuts import render, redirect
+from django.contrib.auth.models import User
 from rest_framework.response import Response
 from rest_framework import status
-from kullanici.serializers import KullaniciSerializer
 from rest_framework import viewsets
-from kullanici.models import Kullanici, kimlik
-from kullanici.models import Snippet
-from kullanici.serializers import SnippetSerializer
+from kullanici.models import Kullanici, kimlik,Snippet 
+from knox.models import AuthToken
 from rest_framework.renderers import JSONRenderer
 from rest_framework.parsers import JSONParser
-
-
-class KullaniciGirisView(APIView):
-    def get(self, request):
-        # Kullanıcı giriş formunu getirmek için gereken işlemleri gerçekleştirin
-        return Response({'message': 'Kullanıcı giriş formu.'}, status=status.HTTP_200_OK)
-
-    def post(self, request):
-        serializer = KullaniciSerializer(data=request.data)
-        if serializer.is_valid():
-            username = serializer.validated_data['username']
-            password = serializer.validated_data['password']
-            user = authenticate(request, username=username, password=password)
-            if user:
-                # Kullanıcı doğrulandıysa giriş başarılı yanıtı döndür
-                return Response({'message': 'Giriş başarılı.'}, status=status.HTTP_200_OK)
-            else:
-                # Kullanıcı doğrulanamazsa hatalı giriş yanıtı döndür
-                return Response({'message': 'Hatalı kullanıcı adı veya şifre.'}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            # Doğrulama başarısızsa hata mesajlarını istemciye gönder
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class KullaniciCikisView(APIView):
-    def post(self, request):
-        # Oturumu sonlandırma işlemlerini gerçekleştir
-        # Örneğin: request.user.logout()
-        return Response({'message': 'Çıkış başarılı.'}, status=status.HTTP_200_OK)
-
-class KullaniciKayitView(APIView):
-    def post(self, request):
-        serializer = KullaniciSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({'message': 'Kullanıcı kaydedildi.'}, status=status.HTTP_201_CREATED)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class KimlikViewSet(viewsets.ModelViewSet):
-    queryset = kimlik.objects.all().order_by("username")
-    serializer_class = KullaniciSerializer
+from rest_framework import generics, permissions
+from .serializers import UserSerializer, RegisterSerializer
+from django.contrib.auth import login
+from rest_framework.authtoken.serializers import AuthTokenSerializer
+from knox.views import LoginView as KnoxLoginView
 
 
 @csrf_exempt
@@ -99,3 +62,89 @@ def snippet_detail(request, pk):
     elif request.method == 'DELETE':
         snippet.delete()
         return HttpResponse(status=204)
+    
+
+
+def kaydol(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('giris')
+    else:
+        form = UserCreationForm()
+    return render(request, 'kaydol.html', {'form': form})
+
+def giris(request):
+    if request.method == 'POST':
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('anasayfa')
+    return render(request, 'giris.html')
+
+def cikis(request):
+    logout(request)
+    return redirect('giris')
+
+
+
+class UserList(APIView):
+    # Sınıf özelliği olarak serileştirici sınıfını belirtiyoruz
+    serializer_class = UserSerializer
+
+    # GET isteklerini işlemek için get() metodunu tanımlıyoruz
+    def get(self, request, format=None):
+        # Veri kümesini get_queryset() metodunu kullanarak alıyoruz
+        users = self.get_queryset()
+        # Verileri serileştirmek için get_serializer() metodunu kullanarak bir serileştirici örneği oluşturuyoruz
+        serializer = self.serializer_class(users, many=True)
+        # Serileştirilmiş verileri Response nesnesi ile döndürüyoruz
+        return Response(serializer.data)
+
+    # POST isteklerini işlemek için post() metodunu tanımlıyoruz
+    def post(self, request, format=None):
+        # İstek verisini serileştirmek için get_serializer() metodunu kullanarak bir serileştirici örneği oluşturuyoruz
+        serializer = self.get_serializer(data=request.data)
+        # Serileştiriciyi doğruluyoruz
+        if serializer.is_valid():
+            # Serileştiriciden gelen verilerle bir kullanıcı örneği oluşturuyoruz
+            user = User.objects.create_user(**serializer.validated_data)
+            # Oluşturulan kullanıcıyı tekrar serileştiriyoruz
+            serializer = self.get_serializer(user)
+            # Serileştirilmiş kullanıcıyı Response nesnesi ile döndürüyoruz
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            # Serileştirici geçerli değilse, hataları Response nesnesi ile döndürüyoruz
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # Veri kümesini döndüren bir yardımcı metod tanımlıyoruz
+    def get_queryset(self):
+        # Tüm kullanıcıları döndürüyoruz
+        return User.objects.all()
+    
+
+class RegisterAPI(generics.GenericAPIView):
+    serializer_class = RegisterSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response({
+        "user": UserSerializer(user, context=self.get_serializer_context()).data,
+        "token": AuthToken.objects.create(user)[1]
+        })
+    
+    
+class LoginAPI(KnoxLoginView):
+    permission_classes = (permissions.AllowAny,)
+
+    def post(self, request, format=None):
+        serializer = AuthTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        login(request, user)
+        return super(LoginAPI, self).post(request, format=None)
