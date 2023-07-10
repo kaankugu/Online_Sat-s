@@ -15,6 +15,8 @@ urlpatterns = [
     path('cikis/', kullaniciViews.KullaniciCikisView.as_view(), name='kullanici-cikis'),
     path('kayıt/', kullaniciViews.KullaniciKayitView.as_view(), name='kullanici-kayıt'),
     path('', include(router.urls)),
+    path('', include('kullanici.urls')),
+
 
 
 
