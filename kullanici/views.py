@@ -17,6 +17,7 @@ from .serializers import UserSerializer, RegisterSerializer
 from django.contrib.auth import login
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from knox.views import LoginView as KnoxLoginView
+from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 
 
 @csrf_exempt
@@ -138,7 +139,6 @@ class RegisterAPI(generics.GenericAPIView):
         "token": AuthToken.objects.create(user)[1]
         })
     
-    
 class LoginAPI(KnoxLoginView):
     permission_classes = (permissions.AllowAny,)
 
@@ -148,3 +148,4 @@ class LoginAPI(KnoxLoginView):
         user = serializer.validated_data['user']
         login(request, user)
         return super(LoginAPI, self).post(request, format=None)
+

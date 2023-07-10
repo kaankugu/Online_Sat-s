@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "kullanici",
     "satıs",
     "templates",
+    "products",
 ]
 
 MIDDLEWARE = [
