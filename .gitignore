@@ -1,0 +1,12 @@
+# Ignore virtual environment
+/myenv/
+
+# Ignore other generated files
+*.pyc
+__pycache__/
+db.sqlite3
+/media/
+/static/
+
+# Ignore local settings
+/local_settings.py

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block partition %}
+
+{% if user.is_authenticated %}
+
+    {% for item in prod %}
+    <div class="card" style="width: 18rem;">
+        <img class="card-img-top" src="{{ MEDIA_URL }}{{ item.image.url }}" alt="Card image cap">
+        <div class="card-body">
+            <h5 class="card-title">{{ item.image.url }}</h5>
+            <h5 class="card-title">{{ item.title }}</h5>
+            <p class="card-text">{{ item.description }}</p>
+            <p class="card-text">Price: {{ item.price }} TL</p>
+            <p class="card-text">izin: {{ item.permission }}</p>
+
+            <button id="update-button" onclick="update_permission('{{ item.id }}')">Güncelle</button>
+        </div>
+    </div>
+    <button onclick="sil({{ item.id }})">{{ item.id }}</button>
+    <li></li>
+    {% endfor %}
+    
+{% else %}
+    <div style="text-align: center; margin-top: 20px;">
+        <a href="{% url 'creatProduct' %}" class="btn btn-primary">Ürün Ekle 2</a>
+    </div>
+{% endif %}
+
+<script>
+    function update_permission(item_id) {  
+        $.ajax({
+            url: "/update-permission/" + parseInt(item_id) + "/",
+            type: "POST",
+            headers: {
+                "X-CSRFToken": '{{ csrf_token }}' 
+            },
+            contentType: "application/json",
+            success: function(response) {
+                alert(response.message);
+                // İstek başarılı olduysa yapılacak işlemler
+            },
+            error: function(error) {
+                // İstek başarısız olduysa yapılacak işlemler
+            }
+        });
+    }
+</script>
+
+{% endblock partition %}
