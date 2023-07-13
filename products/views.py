@@ -3,7 +3,6 @@ from rest_framework import generics
 from .models import Product
 from .serializers import ProductSerializer
 from django.shortcuts import get_object_or_404
-# slug 16 dfsd-sdfsdf-sdfd-dfsd
 from rest_framework.views import APIView , status
 from rest_framework.response import Response
 from django.http import JsonResponse
@@ -45,11 +44,12 @@ def showPrdAll(request):
 
 def showPrd(request):
     prodPermission=Product.objects.filter(permission = True)
-    return render(request, 'base.html', {'prodPermission': prodPermission})
+    return render(request, 'products_list.html', {'prodPermission': prodPermission})
 
 
 def add(request):
     return render(request, "add_product.html")
+    
 def update_permission(request,id):
     prod =Product.objects.get(id=id)
     permission=not prod.permission

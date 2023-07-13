@@ -18,13 +18,14 @@
     <script>
         function redirect() {
             $.ajax({
-                url: "/api/login/",  // Giriş API'nin URL'sini buraya yazın
+                url: "/api/login/",  
                 type: "POST",
                 data: {/* Giriş için gerekli verileri buraya yazın */},
                 success: function(response) {
                     var token = response.token;  // API'den dönen tokeni alın
                     if (token) {
-                        window.location.href = "/home-page/";  // home-page URL'sini buraya yazın
+                        window.location.href = "/home-page/"; w
+                    } // home-page URL'sini buraya yazın
     
                 },
                 error: function(error) {
